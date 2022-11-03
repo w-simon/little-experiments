@@ -1,0 +1,6 @@
+[submodule "busybox"]
+	path = busybox
+	url = git://busybox.net/busybox.git
+[submodule "linux"]
+	path = linux
+	url = https://mirrors.tuna.tsinghua.edu.cn/git/linux.git
