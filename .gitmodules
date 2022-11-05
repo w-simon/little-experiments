@@ -4,3 +4,6 @@
 [submodule "linux"]
 	path = linux
 	url = https://mirrors.tuna.tsinghua.edu.cn/git/linux.git
+[submodule "u-boot"]
+	path = u-boot
+	url = https://github.com/u-boot/u-boot.git
