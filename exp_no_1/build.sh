@@ -14,26 +14,31 @@ prepare () {
 	mkdir -p  ${DEPLOY}
 }
 
-build_kernel () {
+build_kernel() {
 	cd ${BASE}/../linux && \
-	make ARCH=arm versatile_defconfig O=${BUILD_KERNEL} && \
+	make ARCH=arm vexpress_defconfig O=${BUILD_KERNEL} && \
 	cd ${BUILD_KERNEL} && \
-	make ARCH=arm CROSS_COMPILE=${CROSS_PREFIX} -j ${NR}
+	make ARCH=arm CROSS_COMPILE=${CROSS_PREFIX} zImage dtbs -j ${NR}
 }
 
-build_busybox () {
+build_busybox() {
 	cd ${BASE}/../busybox && \
 	make ARCH=arm defconfig O=${BUILD_BUSYBOX} && \
 	cd ${BUILD_BUSYBOX} && \
-	make ARCH=arm CROSS_COMPILE=${CROSS_COMPILE} -j ${NR} install
+	sed -i 's/# CONFIG_STATIC is not set/CONFIG_STATIC=y/g' .config && \
+	make ARCH=arm CROSS_COMPILE=${CROSS_PREFIX} -j ${NR} install
 }
 
-deploy() {
+deploy_kernel() {
 	pushd ${BUILD_KERNEL}
 	cp arch/arm/boot/zImage ${DEPLOY}/
-	cp arch/arm/boot/dts/versatile-pb.dtb ${DEPLOY}/
+	cp arch/arm/boot/dts/vexpress-v2p-ca9.dtb ${DEPLOY}/
 	popd
+}
+
+deploy_rootfs() {
 	pushd ${BUILD_BUSYBOX}/_install/
+	#cp ${BASE}/_switch_root.sh ${BUILD_BUSYBOX}/_install/bin/
 	find . | cpio -o -H newc | gzip -9 > ${DEPLOY}/rootfs.gz
 	popd
 }
@@ -41,4 +46,5 @@ deploy() {
 prepare
 build_kernel
 build_busybox
-deploy
+deploy_kernel
+deploy_rootfs
