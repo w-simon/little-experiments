@@ -24,9 +24,9 @@ build_kernel() {
 	cd ${BASE}/../linux && \
 	make ARCH=arm vexpress_defconfig O=${BUILD_KERNEL} && \
 	cd ${BUILD_KERNEL} && \
-	sed -i '/CONFIG_BLK_DEV=y/a\CONFIG_BLK_DEV_RAM_SIZE=4096' .config && \
-	sed -i '/CONFIG_BLK_DEV=y/a\CONFIG_BLK_DEV_RAM_COUNT=16'  .config && \
-	sed -i '/CONFIG_BLK_DEV=y/a\CONFIG_BLK_DEV_RAM=y' .config && \
+	sed -i 's/# CONFIG_BLK_DEV_RAM is not set/CONFIG_BLK_DEV_RAM=y/' .config && \
+	sed -i '/CONFIG_BLK_DEV_RAM=y/a\CONFIG_BLK_DEV_RAM_COUNT=16'  .config && \
+	sed -i '/CONFIG_BLK_DEV_RAM=y/a\CONFIG_BLK_DEV_RAM_SIZE=4096' .config && \
 	make ARCH=arm CROSS_COMPILE=${CROSS_PREFIX} zImage dtbs -j ${NR}
 }
 
