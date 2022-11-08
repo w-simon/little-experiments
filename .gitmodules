@@ -7,3 +7,6 @@
 [submodule "u-boot"]
 	path = u-boot
 	url = https://github.com/u-boot/u-boot.git
+[submodule "lk"]
+	path = lk
+	url = https://github.com/littlekernel/lk.git
