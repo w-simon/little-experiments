@@ -37,11 +37,12 @@ deploy_kernel() {
 }
 
 deploy_img() {
-	dd if=/dev/zero of=${DEPLOY}/disk.img bs=1024k count=4
+	dd if=/dev/zero of=${DEPLOY}/disk.img bs=1024k count=32
 	mkfs.ext2 -F -m0 ${DEPLOY}/disk.img
 	sudo mount -t ext2 -o loop ${DEPLOY}/disk.img /mnt
 
 	pushd ${BUILD_BUSYBOX}/_install/
+	ln -s bin/busybox init
 	sudo cp -r * /mnt/
 	popd
 
@@ -57,9 +58,9 @@ deploy_rootfs() {
 }
 
 prepare
-#build_kernel
-#build_busybox
-#deploy_kernel
+build_kernel
+build_busybox
+deploy_kernel
 deploy_rootfs
-#deploy_img
+deploy_img
 

@@ -7,11 +7,9 @@ set -x
 /bin/mount -t sysfs none /sys
 
 /sbin/mdev -s
+/bin/sleep 2
 /bin/mount /dev/mmcblk0 /mnt
 
-ls -l /mnt/
-ls -l /mnt/bin/
-
-exec switch_root /mnt /sbin/init
+exec switch_root /mnt /bin/sh
 
 
