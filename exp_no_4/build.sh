@@ -6,6 +6,9 @@ BUILD_BUSYBOX=${BASE}/build_busybox
 BUILD_UBOOT=${BASE}/build_uboot
 DEPLOY=${BASE}/deploy
 
+IMG=zImage
+DTS=vexpress-v2p-ca9.dtb
+
 CROSS_PREFIX=arm-linux-gnueabi- 
 NR=$(grep processor /proc/cpuinfo | tail -n 1 | awk '{print $3}')
 
@@ -39,22 +42,9 @@ build_uboot() {
 
 deploy_kernel() {
 	pushd ${BUILD_KERNEL}
-	cp arch/arm/boot/zImage ${DEPLOY}/
+	cp arch/arm/boot/${IMG} ${DEPLOY}/
 	cp arch/arm/boot/dts/vexpress-v2p-ca9.dtb ${DEPLOY}/
 	popd
-}
-
-deploy_img() {
-	dd if=/dev/zero of=${DEPLOY}/disk.img bs=1024k count=32
-	mkfs.ext2 -F -m0 ${DEPLOY}/disk.img
-	sudo mount -t ext2 -o loop ${DEPLOY}/disk.img /mnt
-
-	pushd ${BUILD_BUSYBOX}/_install/
-	ln -s bin/busybox init
-	sudo cp -r * /mnt/
-	popd
-
-	sudo umount /mnt
 }
 
 deploy_rootfs() {
@@ -71,12 +61,27 @@ deploy_uboot() {
 	popd
 }
 
+make_sd_img() {
+	dd if=/dev/zero of=${DEPLOY}/sd.img bs=1024k count=32
+	mkfs.ext2 -F -m0 ${DEPLOY}/sd.img
+	sudo mount -t ext2 -o loop ${DEPLOY}/sd.img /mnt
+
+	pushd ${BUILD_BUSYBOX}/_install/
+	ln -s bin/busybox init
+	sudo cp -r * /mnt/
+	sudo cp ${DEPLOY}/${IMG} /mnt/
+	sudo cp ${DEPLOY}/${DTS} /mnt/
+	popd
+
+	sudo umount /mnt
+}
+
 prepare
 build_kernel
 build_busybox
 build_uboot
 deploy_kernel
 deploy_rootfs
-deploy_img
 deploy_uboot
+make_sd_img
 
