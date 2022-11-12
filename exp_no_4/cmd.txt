@@ -1,0 +1,4 @@
+setenv bootargs "root=/dev/mmcblk0p2 rw console=ttyAMA0 debug"
+load mmc 0:1 0x60000000 zImage
+load mmc 0:1 0x61000000 vexpress-v2p-ca9.dtb
+bootz 0x60000000 - 0x61000000

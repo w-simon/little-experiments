@@ -62,18 +62,36 @@ deploy_uboot() {
 }
 
 make_sd_img() {
-	dd if=/dev/zero of=${DEPLOY}/sd.img bs=1024k count=32
-	mkfs.ext2 -F -m0 ${DEPLOY}/sd.img
-	sudo mount -t ext2 -o loop ${DEPLOY}/sd.img /mnt
+	pushd ${DEPLOY}
+	mkimage -A arm -O linux -T script -C none -a 0 -e 0 -n "boot script" -d ../cmd.txt boot.scr
 
+	rmm -f sd.img
+	dd if=/dev/zero of=sd.img bs=1024k count=32
+	sudo sfdisk sd.img << EOF
+1,20480,L,*
+,,,,
+EOF
+	DEV=$(sudo losetup -f)
+	sudo losetup -d ${DEV}
+	sudo losetup -P ${DEV} sd.img
+	sudo mkfs.fat -F 16 -n BOOT ${DEV}p1
+	sudo mkfs.ext4 -L ROOTFS ${DEV}p2
+
+	sudo mount ${DEV}p1 /mnt
+	sudo cp boot.scr zImage vexpress-v2p-ca9.dtb /mnt
+	sudo umount /mnt
+
+	sudo mount ${DEV}p2 /mnt
 	pushd ${BUILD_BUSYBOX}/_install/
 	ln -s bin/busybox init
 	sudo cp -r * /mnt/
 	sudo cp ${DEPLOY}/${IMG} /mnt/
 	sudo cp ${DEPLOY}/${DTS} /mnt/
 	popd
-
 	sudo umount /mnt
+
+	sudo losetup -d ${DEV}
+	popd
 }
 
 prepare
