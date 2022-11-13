@@ -7,7 +7,10 @@ BUILD_UBOOT=${BASE}/build_uboot
 DEPLOY=${BASE}/deploy
 
 IMG=zImage
-DTS=vexpress-v2p-ca9.dtb
+DTB=vexpress-v2p-ca9.dtb
+INITRD=rootfs.gz
+SCR=boot.scr
+DISK=sd.img
 
 CROSS_PREFIX=arm-linux-gnueabi- 
 NR=$(grep processor /proc/cpuinfo | tail -n 1 | awk '{print $3}')
@@ -43,15 +46,16 @@ build_uboot() {
 deploy_kernel() {
 	pushd ${BUILD_KERNEL}
 	cp arch/arm/boot/${IMG} ${DEPLOY}/
-	cp arch/arm/boot/dts/vexpress-v2p-ca9.dtb ${DEPLOY}/
+	cp arch/arm/boot/dts/${DTB} ${DEPLOY}/
 	popd
 }
 
-deploy_rootfs() {
+deploy_initrd() {
 	pushd ${BUILD_BUSYBOX}/_install/
 	cp -f ${BASE}/_switch_root.sh ${BUILD_BUSYBOX}/_install/bin/
 	chmod +x ${BUILD_BUSYBOX}/_install/bin/_switch_root.sh
-	find . | cpio -o -H newc | gzip -9 > ${DEPLOY}/rootfs.gz
+	find . | cpio -o -H newc | gzip -9 > ${DEPLOY}/${INITRD}
+	rm -f ${BUILD_BUSYBOX}/_install/bin/
 	popd
 }
 
@@ -63,32 +67,31 @@ deploy_uboot() {
 
 make_sd_img() {
 	pushd ${DEPLOY}
-	mkimage -A arm -O linux -T script -C none -a 0 -e 0 -n "boot script" -d ../cmd.txt boot.scr
-
-	rmm -f sd.img
-	dd if=/dev/zero of=sd.img bs=1024k count=32
-	sudo sfdisk sd.img << EOF
+	rm -f ${DISK}
+	dd if=/dev/zero of=${DISK} bs=1024k count=32
+	sudo sfdisk ${DISK} << EOF
 1,20480,L,*
 ,,,,
 EOF
+	mkimage -A arm -O linux -T script -C none -a 0 -e 0 -n "boot script" -d ../cmd.txt boot.scr
 	DEV=$(sudo losetup -f)
 	sudo losetup -d ${DEV}
-	sudo losetup -P ${DEV} sd.img
+	sudo losetup -P ${DEV} ${DISK}
 	sudo mkfs.fat -F 16 -n BOOT ${DEV}p1
-	sudo mkfs.ext4 -L ROOTFS ${DEV}p2
+	sudo mkfs.ext4 -L ROOT ${DEV}p2
 
 	sudo mount ${DEV}p1 /mnt
-	sudo cp boot.scr zImage vexpress-v2p-ca9.dtb /mnt
+	sudo cp ${DEPLOY}/${IMG} /mnt/
+	sudo cp ${DEPLOY}/${DTB} /mnt/
+	sudo cp ${DEPLOY}/${SCR} /mnt/
+	sudo cp ${DEPLOY}/${INITRD} /mnt/
 	sudo umount /mnt
 
 	sudo mount ${DEV}p2 /mnt
 	pushd ${BUILD_BUSYBOX}/_install/
-	ln -s bin/busybox init
 	sudo cp -r * /mnt/
-	sudo cp ${DEPLOY}/${IMG} /mnt/
-	sudo cp ${DEPLOY}/${DTS} /mnt/
-	popd
 	sudo umount /mnt
+	popd
 
 	sudo losetup -d ${DEV}
 	popd
@@ -99,7 +102,7 @@ build_kernel
 build_busybox
 build_uboot
 deploy_kernel
-deploy_rootfs
+deploy_initrd
 deploy_uboot
 make_sd_img
 
