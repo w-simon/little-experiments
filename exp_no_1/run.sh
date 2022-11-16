@@ -11,4 +11,4 @@ ${QEMU}/qemu-system-arm \
 		-dtb ${DEPLOY}/vexpress-v2p-ca9.dtb \
 		-initrd ${DEPLOY}/rootfs.gz \
 		-nographic \
-		--append "console=ttyAMA0 debug rdinit=/bin/sh"
+		--append "console=ttyAMA0 debug rdinit=/sbin/init "

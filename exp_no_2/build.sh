@@ -5,6 +5,10 @@ BUILD_KERNEL=${BASE}/build_kernel
 BUILD_BUSYBOX=${BASE}/build_busybox
 DEPLOY=${BASE}/deploy
 
+IMG=zImage
+DTB=vexpress-v2p-ca9.dtb
+INITRD=initrd.img
+
 CROSS_PREFIX=arm-linux-gnueabi- 
 NR=$(grep processor /proc/cpuinfo | tail -n 1 | awk '{print $3}')
 
@@ -45,22 +49,44 @@ deploy_kernel() {
 	popd
 }
 
-deploy_rootfs() {
-	dd if=/dev/zero of=${DEPLOY}/initrd.img bs=1024k count=4
-	mkfs.ext2 -F -m0 ${DEPLOY}/initrd.img
-	sudo mount -t ext2 -o loop ${DEPLOY}/initrd.img /mnt
+deploy_initrd() {
+	dd if=/dev/zero of=${DEPLOY}/${INITRD} bs=1024k count=4
+	mkfs.ext2 -F -m0 ${DEPLOY}/${INITRD}
+	sudo mount -t ext2 -o loop ${DEPLOY}/${INITRD} /mnt
 
 	pushd ${BUILD_BUSYBOX}/_install/
 	sudo cp -r * /mnt/
 	popd
 
+	sudo cat > fstab <<EOF
+proc		/proc	proc	defaults    0	0
+sys		/sys	sysfs	defaults    0	0
+EOF
+
+	sudo cat > rcS <<EOF
+#!/bin/sh
+
+/bin/mount -a
+EOF
+	sudo chmod +x rcS
+
+	sudo cat > inittab <<EOF
+::sysinit:/etc/init.d/rcS
+::respawn:-/bin/sh
+::ctrlaltdel:/bin/umount -a -r
+EOF
+	sudo mkdir /mnt/{proc,sys,dev,etc}
+	sudo mkdir /mnt/etc/init.d/
+	sudo mv fstab /mnt/etc/
+	sudo mv inittab /mnt/etc/
+	sudo mv rcS /mnt/etc/init.d/
+
 	sudo umount /mnt
-	#gzip -9 ${DEPLOY}/initrd.img
 }
 
 prepare
 build_kernel
 build_busybox
 deploy_kernel
-deploy_rootfs
+deploy_initrd
 

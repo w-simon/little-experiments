@@ -10,6 +10,5 @@ ${QEMU}/qemu-system-arm \
 	-kernel ${DEPLOY}/zImage \
 	-dtb ${DEPLOY}/vexpress-v2p-ca9.dtb \
 	-initrd ${DEPLOY}/initrd.img \
-	-sd ${DEPLOY}/initrd.img \
 	-nographic \
-	--append "console=ttyAMA0 debug rdinit=/bin/sh"
+	--append "console=ttyAMA0 debug rdinit=/sbin/init"
