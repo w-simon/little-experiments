@@ -36,7 +36,42 @@ deploy_kernel() {
 	popd
 }
 
-deploy_img() {
+build_rootfs_skelen() {
+	mkdir proc sys dev etc mnt
+	cat >etc/fstab <<EOF
+proc		/proc	proc	defaults    0	0
+sys		/sys	sysfs	defaults    0	0
+EOF
+
+	mkdir etc/init.d/
+
+	cat >etc/init.d/rcS <<EOF
+#!/bin/sh
+
+/bin/mount -a
+/sbin/mdev -s
+EOF
+	chmod +x etc/init.d/rcS
+
+	cat >etc/inittab <<EOF
+::sysinit:/etc/init.d/rcS
+::respawn:-/bin/sh
+::ctrlaltdel:/bin/umount -a -r
+EOF
+}
+
+deploy_initrd() {
+	pushd ${BUILD_BUSYBOX}/_install/
+	cp -f ${BASE}/_switch_root.sh ${BUILD_BUSYBOX}/_install/bin/
+	chmod +x ${BUILD_BUSYBOX}/_install/bin/_switch_root.sh
+
+	build_rootfs_skelen
+	find . | cpio -o -H newc | gzip -9 > ${DEPLOY}/rootfs.gz
+	rm -f ${BUILD_BUSYBOX}/_install/bin/_switch_root.sh
+	popd
+}
+
+make_diskimg() {
 	dd if=/dev/zero of=${DEPLOY}/disk.img bs=1024k count=32
 	mkfs.ext2 -F -m0 ${DEPLOY}/disk.img
 	sudo mount -t ext2 -o loop ${DEPLOY}/disk.img /mnt
@@ -49,18 +84,10 @@ deploy_img() {
 	sudo umount /mnt
 }
 
-deploy_rootfs() {
-	pushd ${BUILD_BUSYBOX}/_install/
-	cp -f ${BASE}/_switch_root.sh ${BUILD_BUSYBOX}/_install/bin/
-	chmod +x ${BUILD_BUSYBOX}/_install/bin/_switch_root.sh
-	find . | cpio -o -H newc | gzip -9 > ${DEPLOY}/rootfs.gz
-	popd
-}
-
 prepare
 build_kernel
 build_busybox
 deploy_kernel
-deploy_rootfs
-deploy_img
+deploy_initrd
+make_diskimg
 

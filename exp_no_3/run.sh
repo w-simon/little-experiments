@@ -10,6 +10,6 @@ ${QEMU}/qemu-system-arm \
 	-kernel ${DEPLOY}/zImage \
 	-dtb ${DEPLOY}/vexpress-v2p-ca9.dtb \
 	-initrd ${DEPLOY}/rootfs.gz \
-	-sd ${DEPLOY}/disk.img \
+	-drive format=raw,file=${DEPLOY}/disk.img,if=sd \
 	-nographic \
 	--append "console=ttyAMA0 debug rdinit=/bin/_switch_root.sh "
