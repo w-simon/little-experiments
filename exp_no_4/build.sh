@@ -10,7 +10,7 @@ IMG=zImage
 DTB=vexpress-v2p-ca9.dtb
 INITRD=rootfs.gz
 SCR=boot.scr
-DISK=sd.img
+DISK=disk.img
 
 CROSS_PREFIX=arm-linux-gnueabi- 
 NR=$(grep processor /proc/cpuinfo | tail -n 1 | awk '{print $3}')
@@ -54,6 +54,7 @@ deploy_initrd() {
 	pushd ${BUILD_BUSYBOX}/_install/
 	cp -f ${BASE}/_switch_root.sh ${BUILD_BUSYBOX}/_install/bin/
 	chmod +x ${BUILD_BUSYBOX}/_install/bin/_switch_root.sh
+
 	find . | cpio -o -H newc | gzip -9 > ${DEPLOY}/${INITRD}
 	rm -f ${BUILD_BUSYBOX}/_install/bin/
 	popd
@@ -65,7 +66,33 @@ deploy_uboot() {
 	popd
 }
 
-make_sd_img() {
+build_rootfs_skelen() {
+	pushd ${BUILD_BUSYBOX}/_install/
+	mkdir proc sys dev etc mnt
+	cat >etc/fstab <<EOF
+proc		/proc	proc	defaults    0	0
+sys		/sys	sysfs	defaults    0	0
+EOF
+
+	mkdir etc/init.d/
+
+	cat >etc/init.d/rcS <<EOF
+#!/bin/sh
+
+/bin/mount -a
+/sbin/mdev -s
+EOF
+	chmod +x etc/init.d/rcS
+
+	cat >etc/inittab <<EOF
+::sysinit:/etc/init.d/rcS
+::respawn:-/bin/sh
+::ctrlaltdel:/bin/umount -a -r
+EOF
+	popd
+}
+
+make_diskimg() {
 	pushd ${DEPLOY}
 	rm -f ${DISK}
 	dd if=/dev/zero of=${DISK} bs=1024k count=32
@@ -98,11 +125,12 @@ EOF
 }
 
 prepare
-build_kernel
-build_busybox
-build_uboot
+#build_kernel
+#build_busybox
+#build_uboot
+build_rootfs_skelen
 deploy_kernel
 deploy_initrd
 deploy_uboot
-make_sd_img
+make_diskimg
 

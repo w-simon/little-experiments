@@ -9,5 +9,5 @@ ${QEMU}/qemu-system-arm \
 	-m 128M \
 	-M vexpress-a9 \
 	-kernel ${DEPLOY}/u-boot \
-	-sd ${DEPLOY}/sd.img \
+	-drive format=raw,file=${DEPLOY}/disk.img,if=sd \
 	-nographic
