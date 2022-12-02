@@ -12,13 +12,14 @@ INITRD=rootfs.gz
 SCR=boot.scr
 DISK=disk.img
 
-CROSS_PREFIX=arm-linux-gnueabi- 
+CROSS_PREFIX=aarch64-none-linux-gnu-
 NR=$(grep processor /proc/cpuinfo | tail -n 1 | awk '{print $3}')
 
 prepare() {
 	mkdir -p  ${BUILD_KERNEL}
 	mkdir -p  ${BUILD_BUSYBOX}
 	mkdir -p  ${DEPLOY}
+	export PATH=${BASE}/../tools/cross/gcc-arm-11.2-2022.02-x86_64-aarch64-none-linux-gnu/bin/:$PATH
 }
 
 build_kernel() {
@@ -121,13 +122,12 @@ EOF
 	popd
 
 	sudo losetup -d ${DEV}
-	popd
 }
 
 prepare
-#build_kernel
-#build_busybox
-#build_uboot
+build_kernel
+build_busybox
+build_uboot
 build_rootfs_skelen
 deploy_kernel
 deploy_initrd
